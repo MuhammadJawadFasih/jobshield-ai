@@ -1,4 +1,11 @@
 venv
+<<<<<<< HEAD
+.env
+*.db
+__pycache__
+.git
+=======
 __pycache__
 .git
 hello.py
+>>>>>>> 42dd054ce6f3a607660eddd51875e4b2dda2ef40
