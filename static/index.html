@@ -1,10 +1,181 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>JobShield AI</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      margin: 0;
+      padding: 30px 15px;
+    }
+
+    .container {
+      max-width: 700px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      text-align: center;
+    }
+
+    textarea {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10px;
+      font-size: 16px;
+    }
+
+    .row {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      margin-top: 25px;
+      flex-wrap: wrap;
+    }
+
+    .column {
+      flex: 1;
+      min-width: 220px;
+    }
+
+    select {
+      font-size: 16px;
+      padding: 5px;
+    }
+
+    #checkButton {
+      margin-top: 30px;
+      padding: 12px 30px;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    #resultBox {
+      margin-top: 30px;
+      text-align: left;
+      border-top: 1px solid #ccc;
+      padding-top: 10px;
+    }
+  </style>
 </head>
 <body>
-  <h1>Hello from JobShield AI</h1>
-  <p>My first page works.</p>
+
+  <div class="container">
+
+    <h1>JobShield AI</h1>
+    <p>Paste a job offer below, or upload a PDF or photo of it.</p>
+
+    <textarea id="offerText" rows="10"
+      placeholder="Paste the job offer here..."></textarea>
+
+    <div class="row">
+      <div class="column">
+        <p><b>Choose a file (PDF or photo)</b></p>
+        <input type="file" id="offerFile" accept=".pdf,image/*">
+        <p id="fileName"></p>
+      </div>
+
+      <div class="column">
+        <p><b>Choose the answer language</b></p>
+        <select id="language">
+          <option value="English">English</option>
+          <option value="Urdu">اردو (Urdu)</option>
+          <option value="Arabic">العربية (Arabic)</option>
+          <option value="Hindi">हिन्दी (Hindi)</option>
+          <option value="Bengali">বাংলা (Bengali)</option>
+        </select>
+        <p id="languageLabel">Answer language: English</p>
+      </div>
+    </div>
+
+    <button id="checkButton">Check this offer</button>
+
+    <p id="statusMessage"></p>
+
+    <div id="resultBox" style="display:none;">
+      <h2>Result</h2>
+      <p><b>AI draft</b> (not final, a human will review it)</p>
+      <p>Risk level: <b id="riskLevel"></b></p>
+      <p>Suspicious claims found:</p>
+      <ul id="claimsList"></ul>
+      <p>Checklist to verify this offer:</p>
+      <ul id="checklist"></ul>
+      <p><b>Human decision:</b> Waiting for a reviewer...</p>
+    </div>
+
+  </div>
+
+  <script>
+    var fileInput = document.getElementById("offerFile");
+    var fileNameLabel = document.getElementById("fileName");
+    var languageBox = document.getElementById("language");
+    var languageLabel = document.getElementById("languageLabel");
+    var offerText = document.getElementById("offerText");
+    var checkButton = document.getElementById("checkButton");
+    var statusMessage = document.getElementById("statusMessage");
+    var resultBox = document.getElementById("resultBox");
+    var riskLevel = document.getElementById("riskLevel");
+    var claimsList = document.getElementById("claimsList");
+    var checklist = document.getElementById("checklist");
+
+    fileInput.addEventListener("change", function () {
+      if (fileInput.files.length > 0) {
+        fileNameLabel.textContent = "Selected: " + fileInput.files[0].name;
+      } else {
+        fileNameLabel.textContent = "";
+      }
+    });
+
+    languageBox.addEventListener("change", function () {
+      languageLabel.textContent = "Answer language: " + languageBox.value;
+    });
+
+    function addItems(listElement, items) {
+      listElement.innerHTML = "";
+      for (var i = 0; i < items.length; i++) {
+        var li = document.createElement("li");
+        li.textContent = items[i];
+        listElement.appendChild(li);
+      }
+    }
+
+    checkButton.addEventListener("click", function () {
+      var hasText = offerText.value.trim() !== "";
+      var hasFile = fileInput.files.length > 0;
+
+      if (!hasText && !hasFile) {
+        statusMessage.textContent = "Please paste a job offer or choose a file first.";
+        resultBox.style.display = "none";
+        return;
+      }
+
+      statusMessage.textContent = "Checking your offer... please wait.";
+      resultBox.style.display = "none";
+      checkButton.disabled = true;
+
+      // FAKE answer after 2 seconds (we replace this later with the real one)
+      setTimeout(function () {
+        riskLevel.textContent = "High";
+        addItems(claimsList, [
+          "Asks you to pay a fee before the job starts",
+          "Promises a very high salary with no experience needed",
+          "Uses a free email address, not a company email"
+        ]);
+        addItems(checklist, [
+          "Search for the company name and read reviews",
+          "Check that the company website really exists",
+          "Never pay money to get a job"
+        ]);
+
+        statusMessage.textContent = "";
+        resultBox.style.display = "block";
+        checkButton.disabled = false;
+      }, 2000);
+    });
+  </script>
+
 </body>
 </html>
