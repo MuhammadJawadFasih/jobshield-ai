@@ -1,1 +1,69 @@
-hello
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JobShield AI - Reviewer</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      margin: 0;
+      padding: 30px 15px;
+    }
+    .container {
+      max-width: 700px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      text-align: center;
+    }
+    input {
+      font-size: 16px;
+      padding: 8px;
+    }
+    button {
+      font-size: 16px;
+      padding: 8px 20px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>JobShield AI - Reviewer</h1>
+
+    <div id="loginBox">
+      <p>Enter the reviewer passcode to continue.</p>
+      <input type="password" id="passcodeInput" placeholder="Passcode">
+      <button id="loginButton">Log in</button>
+      <p id="loginMessage"></p>
+    </div>
+
+    <div id="reviewerArea" style="display:none;">
+      <p>You are logged in. The list of cases will appear here.</p>
+    </div>
+  </div>
+
+  <script>
+    var passcodeInput = document.getElementById("passcodeInput");
+    var loginButton = document.getElementById("loginButton");
+    var loginMessage = document.getElementById("loginMessage");
+    var loginBox = document.getElementById("loginBox");
+    var reviewerArea = document.getElementById("reviewerArea");
+
+    loginButton.addEventListener("click", function () {
+      // TEMPORARY test passcode. The real check will be done by Person A's backend.
+      if (passcodeInput.value === "1234") {
+        loginBox.style.display = "none";
+        reviewerArea.style.display = "block";
+      } else {
+        loginMessage.textContent = "Wrong passcode. Try again.";
+      }
+    });
+  </script>
+
+</body>
+</html>
