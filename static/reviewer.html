@@ -28,6 +28,29 @@
       padding: 8px 20px;
       cursor: pointer;
     }
+    #reviewerArea {
+      text-align: left;
+    }
+    .case {
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 12px 15px;
+      margin-bottom: 10px;
+      cursor: pointer;
+    }
+    .case:hover {
+      background: #eef3f8;
+    }
+    .caseTop {
+      display: flex;
+      justify-content: space-between;
+      font-weight: bold;
+    }
+    .caseInfo {
+      color: #555;
+      margin-top: 6px;
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
@@ -43,7 +66,9 @@
     </div>
 
     <div id="reviewerArea" style="display:none;">
-      <p>You are logged in. The list of cases will appear here.</p>
+      <h2>Cases waiting for review</h2>
+      <p id="queueCount"></p>
+      <div id="queueList"></div>
     </div>
   </div>
 
@@ -53,12 +78,46 @@
     var loginMessage = document.getElementById("loginMessage");
     var loginBox = document.getElementById("loginBox");
     var reviewerArea = document.getElementById("reviewerArea");
+    var queueList = document.getElementById("queueList");
+    var queueCount = document.getElementById("queueCount");
+
+    // FAKE cases (we replace this later with the real list from the backend)
+    var cases = [
+      { id: 1, risk: "High",   language: "Urdu",    status: "Pending", time: "10 minutes ago" },
+      { id: 2, risk: "Medium", language: "English", status: "Pending", time: "35 minutes ago" },
+      { id: 3, risk: "Low",    language: "Arabic",  status: "Pending", time: "2 hours ago" }
+    ];
+
+    function showQueue() {
+      queueList.innerHTML = "";
+      queueCount.textContent = cases.length + " case(s) in the queue. Click a case to open it.";
+
+      for (var i = 0; i < cases.length; i++) {
+        var c = cases[i];
+
+        var box = document.createElement("div");
+        box.className = "case";
+
+        var top = document.createElement("div");
+        top.className = "caseTop";
+        top.textContent = "Case #" + c.id + "   |   Risk: " + c.risk;
+
+        var info = document.createElement("div");
+        info.className = "caseInfo";
+        info.textContent = "Language: " + c.language + "  •  Status: " + c.status + "  •  " + c.time;
+
+        box.appendChild(top);
+        box.appendChild(info);
+        queueList.appendChild(box);
+      }
+    }
 
     loginButton.addEventListener("click", function () {
       // TEMPORARY test passcode. The real check will be done by Person A's backend.
       if (passcodeInput.value === "1234") {
         loginBox.style.display = "none";
         reviewerArea.style.display = "block";
+        showQueue();
       } else {
         loginMessage.textContent = "Wrong passcode. Try again.";
       }
