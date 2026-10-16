@@ -5,71 +5,223 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>JobShield AI - Reviewer</title>
   <style>
+    * { box-sizing: border-box; }
+
     body {
-      font-family: Arial, sans-serif;
-      background: #f4f6f8;
       margin: 0;
-      padding: 30px 15px;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: #eef2f7;
+      color: #1f2a37;
     }
-    .container {
-      max-width: 700px;
+
+    .topbar {
+      background: linear-gradient(135deg, #0f2a4a, #1d4e89);
+      color: white;
+      padding: 18px 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+    .topbar-inner {
+      max-width: 800px;
       margin: 0 auto;
+    }
+    .brand { font-size: 24px; font-weight: bold; }
+    .tagline { font-size: 14px; opacity: 0.8; margin-top: 3px; }
+
+    .page {
+      max-width: 800px;
+      margin: 25px auto;
+      padding: 0 15px;
+    }
+
+    .card {
       background: white;
-      padding: 30px;
-      border-radius: 10px;
+      border-radius: 14px;
+      padding: 28px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+    }
+
+    /* Login */
+    #loginBox {
+      max-width: 420px;
+      margin: 40px auto;
       text-align: center;
     }
+    #loginBox h2 { margin-top: 0; }
     input {
+      width: 100%;
       font-size: 16px;
-      padding: 8px;
-    }
-    button {
-      font-size: 16px;
-      padding: 8px 20px;
-      cursor: pointer;
-    }
-    #reviewerArea {
-      text-align: left;
-    }
-    .case {
-      border: 1px solid #ccc;
+      padding: 12px;
+      border: 1px solid #c5d0de;
       border-radius: 8px;
-      padding: 12px 15px;
-      margin-bottom: 10px;
+      margin-bottom: 14px;
+    }
+    input:focus {
+      outline: none;
+      border-color: #1d4e89;
+      box-shadow: 0 0 0 3px rgba(29, 78, 137, 0.2);
+    }
+    .primary {
+      width: 100%;
+      font-size: 16px;
+      font-weight: bold;
+      padding: 12px;
+      color: white;
+      background: #1d4e89;
+      border: none;
+      border-radius: 8px;
       cursor: pointer;
     }
-    .case:hover {
-      background: #eef3f8;
+    .primary:hover { background: #163c6b; }
+    .secondary {
+      font-size: 15px;
+      padding: 8px 16px;
+      background: white;
+      border: 1px solid #c5d0de;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-bottom: 15px;
     }
-    .caseTop {
+    .secondary:hover { background: #eef2f7; }
+    #loginMessage { color: #d64545; font-weight: bold; min-height: 20px; }
+
+    /* Queue */
+    .pageTitle { margin-top: 0; }
+    .muted { color: #6b7a8c; font-size: 14px; }
+
+    .case {
       display: flex;
       justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      background: white;
+      border: 1px solid #dde4ee;
+      border-left: 6px solid #999;
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-top: 12px;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .case:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
+    }
+    .case.High { border-left-color: #d64545; }
+    .case.Medium { border-left-color: #e8912d; }
+    .case.Low { border-left-color: #2e9e5b; }
+    .caseTitle { font-weight: bold; font-size: 17px; }
+    .caseInfo { color: #6b7a8c; font-size: 14px; margin-top: 4px; }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 14px;
+      border-radius: 20px;
+      color: white;
+      font-size: 13px;
       font-weight: bold;
+      white-space: nowrap;
     }
-    .caseInfo {
-      color: #555;
-      margin-top: 6px;
-      font-size: 14px;
+    .badge.High { background: #d64545; }
+    .badge.Medium { background: #e8912d; }
+    .badge.Low { background: #2e9e5b; }
+
+    /* Detail */
+    .sectionTitle {
+      font-size: 13px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #6b7a8c;
+      margin: 22px 0 8px;
     }
+    .offerBox {
+      background: #f4f6f9;
+      border: 1px solid #dde4ee;
+      border-radius: 10px;
+      padding: 14px;
+      line-height: 1.5;
+    }
+    .aiBox {
+      background: #fffaf0;
+      border: 2px solid #f0d98a;
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-top: 22px;
+    }
+    .humanBox {
+      background: #f1f5fb;
+      border: 2px solid #b8cbe6;
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-top: 18px;
+    }
+    .chip {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      color: white;
+      margin-bottom: 8px;
+    }
+    .chip.ai { background: #b8890b; }
+    .chip.human { background: #1d4e89; }
+
+    ul { list-style: none; padding-left: 0; margin: 6px 0 14px; }
+    li { padding: 6px 0 6px 28px; position: relative; line-height: 1.4; }
+    #detailClaims li::before { content: "\26A0"; position: absolute; left: 0; color: #d64545; }
+    #detailChecklist li::before { content: "\2610"; position: absolute; left: 2px; color: #1d4e89; }
   </style>
 </head>
 <body>
 
-  <div class="container">
-    <h1>JobShield AI - Reviewer</h1>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">&#128737; JobShield AI</div>
+      <div class="tagline">Reviewer dashboard</div>
+    </div>
+  </div>
 
-    <div id="loginBox">
-      <p>Enter the reviewer passcode to continue.</p>
+  <div class="page">
+
+    <div id="loginBox" class="card">
+      <h2>Reviewer login</h2>
+      <p class="muted">Enter the reviewer passcode to continue.</p>
       <input type="password" id="passcodeInput" placeholder="Passcode">
-      <button id="loginButton">Log in</button>
+      <button id="loginButton" class="primary">Log in</button>
       <p id="loginMessage"></p>
     </div>
 
-    <div id="reviewerArea" style="display:none;">
-      <h2>Cases waiting for review</h2>
-      <p id="queueCount"></p>
+    <div id="reviewerArea" class="card" style="display:none;">
+      <h2 class="pageTitle">Cases waiting for review</h2>
+      <p id="queueCount" class="muted"></p>
       <div id="queueList"></div>
     </div>
+
+    <div id="detailArea" class="card" style="display:none;">
+      <button id="backButton" class="secondary">&larr; Back to the list</button>
+      <h2 id="detailTitle" class="pageTitle"></h2>
+      <p id="detailInfo" class="muted"></p>
+
+      <div class="sectionTitle">Original job offer</div>
+      <div id="detailOffer" class="offerBox"></div>
+
+      <div class="aiBox">
+        <span class="chip ai">AI DRAFT &middot; NOT FINAL</span>
+        <p>Risk level: <span id="detailRisk" class="badge"></span></p>
+        <b>Suspicious claims found</b>
+        <ul id="detailClaims"></ul>
+        <b>Checklist to verify this offer</b>
+        <ul id="detailChecklist"></ul>
+      </div>
+
+      <div class="humanBox">
+        <span class="chip human">HUMAN DECISION</span>
+        <p class="muted" style="margin:0;">Not decided yet.</p>
+      </div>
+    </div>
+
   </div>
 
   <script>
@@ -80,37 +232,121 @@
     var reviewerArea = document.getElementById("reviewerArea");
     var queueList = document.getElementById("queueList");
     var queueCount = document.getElementById("queueCount");
+    var detailArea = document.getElementById("detailArea");
+    var backButton = document.getElementById("backButton");
 
     // FAKE cases (we replace this later with the real list from the backend)
     var cases = [
-      { id: 1, risk: "High",   language: "Urdu",    status: "Pending", time: "10 minutes ago" },
-      { id: 2, risk: "Medium", language: "English", status: "Pending", time: "35 minutes ago" },
-      { id: 3, risk: "Low",    language: "Arabic",  status: "Pending", time: "2 hours ago" }
+      {
+        id: 1, risk: "High", language: "Urdu", status: "Pending", time: "10 minutes ago",
+        offer: "Urgent hiring in Dubai! Salary 5000 USD per month, no experience needed. Pay a 300 USD visa fee first. Contact us on WhatsApp or at bestjobs2026@gmail.com.",
+        claims: [
+          "Asks you to pay a fee before the job starts",
+          "Promises a very high salary with no experience needed",
+          "Uses a free email address, not a company email"
+        ],
+        checklist: [
+          "Search for the company name and read reviews",
+          "Check that the company website really exists",
+          "Never pay money to get a job"
+        ]
+      },
+      {
+        id: 2, risk: "Medium", language: "English", status: "Pending", time: "35 minutes ago",
+        offer: "Warehouse worker needed in Qatar. Salary 800 USD. Accommodation provided. Send your passport copy to apply.",
+        claims: [
+          "Asks for a passport copy before any interview",
+          "Company name is not given"
+        ],
+        checklist: [
+          "Ask for the full company name and address",
+          "Check the agency on the official government list",
+          "Do not send documents until the company is verified"
+        ]
+      },
+      {
+        id: 3, risk: "Low", language: "Arabic", status: "Pending", time: "2 hours ago",
+        offer: "Hotel receptionist, Muscat. Salary 600 OMR. Interview by video call. Apply at the hotel's official website careers page.",
+        claims: [
+          "No major warning signs found"
+        ],
+        checklist: [
+          "Confirm the careers page is on the hotel's real website",
+          "Ask for a written contract before travelling"
+        ]
+      }
     ];
+
+    function fillList(listId, items) {
+      var list = document.getElementById(listId);
+      list.innerHTML = "";
+      for (var i = 0; i < items.length; i++) {
+        var li = document.createElement("li");
+        li.textContent = items[i];
+        list.appendChild(li);
+      }
+    }
+
+    function openCase(c) {
+      document.getElementById("detailTitle").textContent = "Case #" + c.id;
+      document.getElementById("detailInfo").textContent =
+        "Language: " + c.language + "  \u2022  Status: " + c.status + "  \u2022  " + c.time;
+      document.getElementById("detailOffer").textContent = c.offer;
+
+      var riskBadge = document.getElementById("detailRisk");
+      riskBadge.className = "badge " + c.risk;
+      riskBadge.textContent = c.risk;
+
+      fillList("detailClaims", c.claims);
+      fillList("detailChecklist", c.checklist);
+
+      reviewerArea.style.display = "none";
+      detailArea.style.display = "block";
+      window.scrollTo(0, 0);
+    }
 
     function showQueue() {
       queueList.innerHTML = "";
       queueCount.textContent = cases.length + " case(s) in the queue. Click a case to open it.";
 
       for (var i = 0; i < cases.length; i++) {
-        var c = cases[i];
+        (function (c) {
+          var box = document.createElement("div");
+          box.className = "case " + c.risk;
 
-        var box = document.createElement("div");
-        box.className = "case";
+          var left = document.createElement("div");
 
-        var top = document.createElement("div");
-        top.className = "caseTop";
-        top.textContent = "Case #" + c.id + "   |   Risk: " + c.risk;
+          var title = document.createElement("div");
+          title.className = "caseTitle";
+          title.textContent = "Case #" + c.id;
 
-        var info = document.createElement("div");
-        info.className = "caseInfo";
-        info.textContent = "Language: " + c.language + "  •  Status: " + c.status + "  •  " + c.time;
+          var info = document.createElement("div");
+          info.className = "caseInfo";
+          info.textContent = c.language + "  \u2022  " + c.status + "  \u2022  " + c.time;
 
-        box.appendChild(top);
-        box.appendChild(info);
-        queueList.appendChild(box);
+          left.appendChild(title);
+          left.appendChild(info);
+
+          var badge = document.createElement("span");
+          badge.className = "badge " + c.risk;
+          badge.textContent = c.risk + " risk";
+
+          box.appendChild(left);
+          box.appendChild(badge);
+
+          box.addEventListener("click", function () {
+            openCase(c);
+          });
+
+          queueList.appendChild(box);
+        })(cases[i]);
       }
     }
+
+    backButton.addEventListener("click", function () {
+      detailArea.style.display = "none";
+      reviewerArea.style.display = "block";
+    });
 
     loginButton.addEventListener("click", function () {
       // TEMPORARY test passcode. The real check will be done by Person A's backend.
@@ -121,6 +357,10 @@
       } else {
         loginMessage.textContent = "Wrong passcode. Try again.";
       }
+    });
+
+    passcodeInput.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { loginButton.click(); }
     });
   </script>
 
