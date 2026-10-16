@@ -227,12 +227,12 @@
       <p id="statusMessage"></p>
     </div>
 
-    <div id="resultBox" class="card" style="display:none;">
+        <div id="resultBox" class="card" style="display:none;">
       <h2>Result</h2>
 
       <div class="aiBox">
         <span class="chip ai">AI DRAFT &middot; NOT FINAL</span>
-        <p>Risk level: <span id="riskLevel" class="badge"></span></p>
+        <p>AI risk level: <span id="aiRiskLevel" class="badge"></span></p>
         <b>Suspicious claims found</b>
         <ul id="claimsList"></ul>
         <b>Checklist to verify this offer</b>
@@ -241,7 +241,10 @@
 
       <div class="humanBox">
         <span class="chip human">HUMAN DECISION</span>
-        <p class="muted" style="margin:0;">Waiting for a reviewer...</p>
+        <p>Final risk level: <span id="riskLevel" class="badge"></span></p>
+        <p id="changedMessage" style="font-weight:bold;"></p>
+        <p id="humanSummary"></p>
+        <p id="humanNote" class="muted"></p>
       </div>
     </div>
 
@@ -256,9 +259,19 @@
     var checkButton = document.getElementById("checkButton");
     var statusMessage = document.getElementById("statusMessage");
     var resultBox = document.getElementById("resultBox");
+    var aiRiskLevel = document.getElementById("aiRiskLevel");
     var riskLevel = document.getElementById("riskLevel");
     var claimsList = document.getElementById("claimsList");
     var checklist = document.getElementById("checklist");
+    var changedMessage = document.getElementById("changedMessage");
+    var humanSummary = document.getElementById("humanSummary");
+    var humanNote = document.getElementById("humanNote");
+
+    var pollTimer = null;
+
+    function capitalize(word) {
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    }
 
     fileInput.addEventListener("change", function () {
       if (fileInput.files.length > 0) {
@@ -281,7 +294,70 @@
       }
     }
 
-    checkButton.addEventListener("click", function () {
+    // Shows each suspicious sentence with its reason underneath
+    function addFlags(listElement, flags) {
+      listElement.innerHTML = "";
+      for (var i = 0; i < flags.length; i++) {
+        var li = document.createElement("li");
+        var quote = document.createElement("b");
+        quote.textContent = "\u201C" + flags[i].quote + "\u201D";
+        var reason = document.createElement("div");
+        reason.textContent = flags[i].reason;
+        li.appendChild(quote);
+        li.appendChild(reason);
+        listElement.appendChild(li);
+      }
+    }
+
+    function showResult(c) {
+      aiRiskLevel.className = "badge " + capitalize(c.ai_risk);
+      aiRiskLevel.textContent = capitalize(c.ai_risk);
+      riskLevel.className = "badge " + capitalize(c.final_risk);
+      riskLevel.textContent = capitalize(c.final_risk);
+
+      if (c.changed) {
+        changedMessage.textContent =
+          "AI said " + capitalize(c.ai_risk) + ", reviewer said " + capitalize(c.final_risk);
+      } else {
+        changedMessage.textContent = "The reviewer agreed with the AI.";
+      }
+
+      humanSummary.textContent = c.summary || "";
+      humanNote.textContent = c.note ? "Reviewer note: " + c.note : "";
+
+      addFlags(claimsList, c.red_flags || []);
+      addItems(checklist, c.checklist || []);
+
+      statusMessage.textContent = "";
+      resultBox.style.display = "block";
+      checkButton.disabled = false;
+      resultBox.scrollIntoView({ behavior: "smooth" });
+    }
+
+    async function checkStatus(id) {
+      try {
+        var res = await fetch("/api/case/" + id);
+        var c = await res.json();
+
+        if (c.status === "pending") {
+          return; // keep waiting
+        }
+
+        clearInterval(pollTimer);
+
+        if (c.status === "needs_info") {
+          statusMessage.className = "";
+          statusMessage.textContent = "The reviewer needs more information: " + (c.note || "");
+          checkButton.disabled = false;
+        } else {
+          showResult(c);
+        }
+      } catch (err) {
+        // network problem: the next check will try again
+      }
+    }
+
+    checkButton.addEventListener("click", async function () {
       var hasText = offerText.value.trim() !== "";
       var hasFile = fileInput.files.length > 0;
 
@@ -292,32 +368,35 @@
         return;
       }
 
-      // Waiting state
       statusMessage.className = "";
-      statusMessage.textContent = "Checking your offer... please wait.";
+      statusMessage.textContent = "Sending your offer... please wait.";
       resultBox.style.display = "none";
       checkButton.disabled = true;
 
-      // FAKE answer after 2 seconds (we replace this later with the real one)
-      setTimeout(function () {
-        riskLevel.className = "badge High";
-        riskLevel.textContent = "High";
-        addItems(claimsList, [
-          "Asks you to pay a fee before the job starts",
-          "Promises a very high salary with no experience needed",
-          "Uses a free email address, not a company email"
-        ]);
-        addItems(checklist, [
-          "Search for the company name and read reviews",
-          "Check that the company website really exists",
-          "Never pay money to get a job"
-        ]);
+      // The backend wants form data, not JSON
+      var data = new FormData();
+      data.append("text", offerText.value);
+      data.append("language", languageBox.value);
+      if (hasFile) {
+        data.append("file", fileInput.files[0]);
+      }
 
-        statusMessage.textContent = "";
-        resultBox.style.display = "block";
+      try {
+        var res = await fetch("/api/submit", { method: "POST", body: data });
+        if (!res.ok) { throw new Error("Server error " + res.status); }
+        var json = await res.json();
+
+        statusMessage.textContent =
+          "Your offer is being checked. A human reviewer will confirm the result. This page updates by itself.";
+
+        clearInterval(pollTimer);
+        checkStatus(json.id);
+        pollTimer = setInterval(function () { checkStatus(json.id); }, 4000);
+      } catch (err) {
+        statusMessage.className = "error";
+        statusMessage.textContent = "Could not send your offer. Please try again.";
         checkButton.disabled = false;
-        resultBox.scrollIntoView({ behavior: "smooth" });
-      }, 2000);
+      }
     });
   </script>
 

@@ -223,3 +223,5 @@ venv/
 __pycache__/
 *.db
 uploads/
+jobshield.db
+screenshots/

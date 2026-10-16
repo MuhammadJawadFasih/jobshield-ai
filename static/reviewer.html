@@ -211,7 +211,7 @@
       <p id="loginMessage"></p>
     </div>
 
-    <div id="reviewerArea" class="card" style="display:none;">
+        <div id="reviewerArea" class="card" style="display:none;">
       <h2 class="pageTitle">Cases waiting for review</h2>
       <p id="queueCount" class="muted"></p>
       <div id="queueList"></div>
@@ -227,7 +227,7 @@
 
       <div class="aiBox">
         <span class="chip ai">AI DRAFT &middot; NOT FINAL</span>
-        <p>Risk level: <span id="detailRisk" class="badge"></span></p>
+        <p>AI risk level: <span id="detailRisk" class="badge"></span></p>
         <b>Suspicious claims found</b>
         <ul id="detailClaims"></ul>
         <b>Checklist to verify this offer</b>
@@ -238,19 +238,33 @@
         <span class="chip human">HUMAN DECISION</span>
 
         <div id="decisionPending">
-          <p class="muted" style="margin-top:0;">Not decided yet. Read the AI draft above, then choose:</p>
-          <textarea id="noteInput" rows="3" placeholder="Add a short note (optional)..."></textarea>
+          <p class="muted" style="margin-top:0;">Read the AI draft above, then make your decision:</p>
+
+          <b>Final risk level</b>
+          <select id="finalRisk" style="width:100%; font-size:16px; padding:10px; margin:6px 0 14px; border:1px solid #c5d0de; border-radius:8px;">
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </select>
+
+          <b>Summary for the person</b>
+          <textarea id="summaryInput" rows="3" style="margin:6px 0 14px;" placeholder="Explain your decision in simple words..."></textarea>
+
+          <b>Note (optional, but required if you need more information)</b>
+          <textarea id="noteInput" rows="2" style="margin:6px 0 14px;" placeholder="Add a short note..."></textarea>
+
+          <p id="decisionMessage" style="color:#d64545; font-weight:bold; min-height:20px; margin:0;"></p>
+
           <div class="decisionButtons">
-            <button class="decide Safe" data-decision="Safe">&#10004; Looks legitimate</button>
-            <button class="decide Scam" data-decision="Scam">&#10006; Likely a scam</button>
-            <button class="decide More" data-decision="More">? Needs more information</button>
+            <button id="approveButton" class="decide Safe">&#10004; Send final result</button>
+            <button id="needInfoButton" class="decide More">? Needs more information</button>
           </div>
         </div>
 
         <div id="decisionDone" style="display:none;">
           <p>Final decision: <span id="decisionBadge" class="badge"></span></p>
+          <p id="decisionSummary"></p>
           <p id="decisionNote" class="muted"></p>
-          <button id="changeButton" class="secondary">Change decision</button>
         </div>
       </div>
     </div>
@@ -258,6 +272,9 @@
   </div>
 
   <script>
+    var passcode = "";          // typed by the reviewer, never saved in the page
+    var currentCaseId = null;
+
     var passcodeInput = document.getElementById("passcodeInput");
     var loginButton = document.getElementById("loginButton");
     var loginMessage = document.getElementById("loginMessage");
@@ -270,62 +287,28 @@
     var decisionPending = document.getElementById("decisionPending");
     var decisionDone = document.getElementById("decisionDone");
     var decisionBadge = document.getElementById("decisionBadge");
+    var decisionSummary = document.getElementById("decisionSummary");
     var decisionNote = document.getElementById("decisionNote");
+    var decisionMessage = document.getElementById("decisionMessage");
+    var summaryInput = document.getElementById("summaryInput");
     var noteInput = document.getElementById("noteInput");
-    var changeButton = document.getElementById("changeButton");
+    var finalRisk = document.getElementById("finalRisk");
 
-    var labels = {
-      Safe: "Looks legitimate",
-      Scam: "Likely a scam",
-      More: "Needs more information"
-    };
+    function capitalize(word) {
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    }
 
-    var currentCase = null;
-
-    // FAKE cases (we replace this later with the real list from the backend)
-    var cases = [
-      {
-        id: 1, risk: "High", language: "Urdu", status: "Pending", time: "10 minutes ago",
-        offer: "Urgent hiring in Dubai! Salary 5000 USD per month, no experience needed. Pay a 300 USD visa fee first. Contact us on WhatsApp or at bestjobs2026@gmail.com.",
-        claims: [
-          "Asks you to pay a fee before the job starts",
-          "Promises a very high salary with no experience needed",
-          "Uses a free email address, not a company email"
-        ],
-        checklist: [
-          "Search for the company name and read reviews",
-          "Check that the company website really exists",
-          "Never pay money to get a job"
-        ],
-        decision: null, note: ""
-      },
-      {
-        id: 2, risk: "Medium", language: "English", status: "Pending", time: "35 minutes ago",
-        offer: "Warehouse worker needed in Qatar. Salary 800 USD. Accommodation provided. Send your passport copy to apply.",
-        claims: [
-          "Asks for a passport copy before any interview",
-          "Company name is not given"
-        ],
-        checklist: [
-          "Ask for the full company name and address",
-          "Check the agency on the official government list",
-          "Do not send documents until the company is verified"
-        ],
-        decision: null, note: ""
-      },
-      {
-        id: 3, risk: "Low", language: "Arabic", status: "Pending", time: "2 hours ago",
-        offer: "Hotel receptionist, Muscat. Salary 600 OMR. Interview by video call. Apply at the hotel's official website careers page.",
-        claims: [
-          "No major warning signs found"
-        ],
-        checklist: [
-          "Confirm the careers page is on the hotel's real website",
-          "Ask for a written contract before travelling"
-        ],
-        decision: null, note: ""
-      }
-    ];
+    // Every request to the reviewer endpoints goes through here.
+    // It adds the passcode in the X-Passcode header.
+    async function api(path, options) {
+      options = options || {};
+      options.headers = options.headers || {};
+      options.headers["X-Passcode"] = passcode;
+      var res = await fetch(path, options);
+      if (res.status === 401) { throw new Error("WRONG_PASSCODE"); }
+      if (!res.ok) { throw new Error("Server error " + res.status); }
+      return res.json();
+    }
 
     function fillList(listId, items) {
       var list = document.getElementById(listId);
@@ -337,116 +320,172 @@
       }
     }
 
+    function fillFlags(listId, flags) {
+      var list = document.getElementById(listId);
+      list.innerHTML = "";
+      for (var i = 0; i < flags.length; i++) {
+        var li = document.createElement("li");
+        var quote = document.createElement("b");
+        quote.textContent = "\u201C" + flags[i].quote + "\u201D";
+        var reason = document.createElement("div");
+        reason.textContent = flags[i].reason;
+        li.appendChild(quote);
+        li.appendChild(reason);
+        list.appendChild(li);
+      }
+    }
+
     function renderDecision(c) {
-      if (c.decision) {
+      decisionMessage.textContent = "";
+      if (c.final) {
         decisionPending.style.display = "none";
         decisionDone.style.display = "block";
-        decisionBadge.className = "badge " + c.decision;
-        decisionBadge.textContent = labels[c.decision];
-        decisionNote.textContent = c.note ? "Reviewer note: " + c.note : "No note added.";
+        if (c.final.final_risk) {
+          decisionBadge.className = "badge " + capitalize(c.final.final_risk);
+          decisionBadge.textContent = capitalize(c.final.final_risk) + " risk";
+        } else {
+          decisionBadge.className = "badge More";
+          decisionBadge.textContent = "Needs more information";
+        }
+        decisionSummary.textContent = c.final.summary || "";
+        decisionNote.textContent = c.final.note ? "Reviewer note: " + c.final.note : "";
       } else {
         decisionPending.style.display = "block";
         decisionDone.style.display = "none";
+        summaryInput.value = "";
         noteInput.value = "";
       }
     }
 
-    function openCase(c) {
-      currentCase = c;
-      document.getElementById("detailTitle").textContent = "Case #" + c.id;
-      document.getElementById("detailInfo").textContent =
-        "Language: " + c.language + "  \u2022  Status: " + c.status + "  \u2022  " + c.time;
-      document.getElementById("detailOffer").textContent = c.offer;
-
-      var riskBadge = document.getElementById("detailRisk");
-      riskBadge.className = "badge " + c.risk;
-      riskBadge.textContent = c.risk;
-
-      fillList("detailClaims", c.claims);
-      fillList("detailChecklist", c.checklist);
-      renderDecision(c);
-
-      reviewerArea.style.display = "none";
-      detailArea.style.display = "block";
-      window.scrollTo(0, 0);
-    }
-
-    function showQueue() {
+    async function loadQueue() {
+      var cases = await api("/api/reviewer/cases");
       queueList.innerHTML = "";
 
       var pending = 0;
       for (var p = 0; p < cases.length; p++) {
-        if (!cases[p].decision) { pending++; }
+        if (cases[p].status === "pending") { pending++; }
       }
       queueCount.textContent = pending + " of " + cases.length + " case(s) still waiting. Click a case to open it.";
 
       for (var i = 0; i < cases.length; i++) {
         (function (c) {
+          var risk = capitalize(c.ai_risk);
+
           var box = document.createElement("div");
-          box.className = "case " + c.risk;
+          box.className = "case " + risk;
 
           var left = document.createElement("div");
-
           var title = document.createElement("div");
           title.className = "caseTitle";
-          title.textContent = "Case #" + c.id;
-
+          title.textContent = "Case #" + c.id + (c.urgent ? "  \uD83D\uDD34 URGENT" : "");
           var info = document.createElement("div");
           info.className = "caseInfo";
-          var statusText = c.decision ? "Reviewed: " + labels[c.decision] : c.status;
-          info.textContent = c.language + "  \u2022  " + statusText + "  \u2022  " + c.time;
-
+          info.textContent = capitalize(c.status) + "  \u2022  " + c.created_at;
           left.appendChild(title);
           left.appendChild(info);
 
           var badge = document.createElement("span");
-          badge.className = "badge " + c.risk;
-          badge.textContent = c.risk + " risk";
+          badge.className = "badge " + risk;
+          badge.textContent = "AI: " + risk;
 
           box.appendChild(left);
           box.appendChild(badge);
-
-          box.addEventListener("click", function () {
-            openCase(c);
-          });
-
+          box.addEventListener("click", function () { openCase(c.id); });
           queueList.appendChild(box);
         })(cases[i]);
       }
     }
 
-    // Decision buttons
-    var decideButtons = document.querySelectorAll(".decide");
-    for (var b = 0; b < decideButtons.length; b++) {
-      decideButtons[b].addEventListener("click", function () {
-        currentCase.decision = this.getAttribute("data-decision");
-        currentCase.note = noteInput.value.trim();
-        currentCase.status = "Reviewed";
-        renderDecision(currentCase);
-      });
+    async function openCase(id) {
+      try {
+        currentCaseId = id;
+        var c = await api("/api/reviewer/case/" + id);
+        var a = c.analysis;
+
+        document.getElementById("detailTitle").textContent = "Case #" + c.id;
+        document.getElementById("detailInfo").textContent =
+          "Language: " + c.language + "  \u2022  Status: " + c.status +
+          (c.file_name ? "  \u2022  File: " + c.file_name : "");
+        document.getElementById("detailOffer").textContent =
+          c.offer_text || "(No text. See the uploaded file.)";
+
+        var riskBadge = document.getElementById("detailRisk");
+        riskBadge.className = "badge " + capitalize(a.risk);
+        riskBadge.textContent = capitalize(a.risk);
+
+        fillFlags("detailClaims", a.red_flags || []);
+        fillList("detailChecklist", a.checklist || []);
+
+        finalRisk.value = a.risk;   // starts with the AI's opinion; the human can change it
+        renderDecision(c);
+
+        reviewerArea.style.display = "none";
+        detailArea.style.display = "block";
+        window.scrollTo(0, 0);
+      } catch (err) {
+        alert("Could not open this case. Try again.");
+      }
     }
 
-    changeButton.addEventListener("click", function () {
-      currentCase.decision = null;
-      currentCase.note = "";
-      currentCase.status = "Pending";
-      renderDecision(currentCase);
+    async function sendDecision(decision) {
+      var summary = summaryInput.value.trim();
+      var note = noteInput.value.trim();
+
+      if (decision === "approved" && summary === "") {
+        decisionMessage.textContent = "Please write a short summary first.";
+        return;
+      }
+      if (decision === "needs_info" && note === "") {
+        decisionMessage.textContent = "Please write in the note what information is needed.";
+        return;
+      }
+      if (decision === "needs_info" && summary === "") {
+        summary = "More information is needed.";
+      }
+
+      try {
+        await api("/api/reviewer/case/" + currentCaseId + "/decide", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            decision: decision,
+            final_risk: finalRisk.value,
+            summary: summary,
+            note: note
+          })
+        });
+        detailArea.style.display = "none";
+        reviewerArea.style.display = "block";
+        await loadQueue();
+      } catch (err) {
+        decisionMessage.textContent = "Could not save the decision. Try again.";
+      }
+    }
+
+    document.getElementById("approveButton").addEventListener("click", function () {
+      sendDecision("approved");
+    });
+    document.getElementById("needInfoButton").addEventListener("click", function () {
+      sendDecision("needs_info");
     });
 
-    backButton.addEventListener("click", function () {
-      showQueue();
+    backButton.addEventListener("click", async function () {
       detailArea.style.display = "none";
       reviewerArea.style.display = "block";
+      try { await loadQueue(); } catch (err) {}
     });
 
-    loginButton.addEventListener("click", function () {
-      // TEMPORARY test passcode. The real check will be done by Person A's backend.
-      if (passcodeInput.value === "1234") {
+    loginButton.addEventListener("click", async function () {
+      passcode = passcodeInput.value;
+      loginMessage.textContent = "";
+      try {
+        await loadQueue();   // this also checks the passcode
         loginBox.style.display = "none";
         reviewerArea.style.display = "block";
-        showQueue();
-      } else {
-        loginMessage.textContent = "Wrong passcode. Try again.";
+      } catch (err) {
+        loginMessage.textContent = err.message === "WRONG_PASSCODE"
+          ? "Wrong passcode. Try again."
+          : "Something went wrong. Try again.";
       }
     });
 
