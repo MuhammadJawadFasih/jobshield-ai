@@ -20,18 +20,11 @@
       padding: 18px 20px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     }
-    .topbar-inner {
-      max-width: 800px;
-      margin: 0 auto;
-    }
+    .topbar-inner { max-width: 800px; margin: 0 auto; }
     .brand { font-size: 24px; font-weight: bold; }
     .tagline { font-size: 14px; opacity: 0.8; margin-top: 3px; }
 
-    .page {
-      max-width: 800px;
-      margin: 25px auto;
-      padding: 0 15px;
-    }
+    .page { max-width: 800px; margin: 25px auto; padding: 0 15px; }
 
     .card {
       background: white;
@@ -41,11 +34,7 @@
     }
 
     /* Login */
-    #loginBox {
-      max-width: 420px;
-      margin: 40px auto;
-      text-align: center;
-    }
+    #loginBox { max-width: 420px; margin: 40px auto; text-align: center; }
     #loginBox h2 { margin-top: 0; }
     input {
       width: 100%;
@@ -55,7 +44,16 @@
       border-radius: 8px;
       margin-bottom: 14px;
     }
-    input:focus {
+    textarea {
+      width: 100%;
+      font-size: 15px;
+      font-family: inherit;
+      padding: 10px;
+      border: 1px solid #c5d0de;
+      border-radius: 8px;
+      resize: vertical;
+    }
+    input:focus, textarea:focus {
       outline: none;
       border-color: #1d4e89;
       box-shadow: 0 0 0 3px rgba(29, 78, 137, 0.2);
@@ -102,10 +100,7 @@
       cursor: pointer;
       transition: transform 0.15s, box-shadow 0.15s;
     }
-    .case:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
-    }
+    .case:hover { transform: translateY(-2px); box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12); }
     .case.High { border-left-color: #d64545; }
     .case.Medium { border-left-color: #e8912d; }
     .case.Low { border-left-color: #2e9e5b; }
@@ -121,9 +116,9 @@
       font-weight: bold;
       white-space: nowrap;
     }
-    .badge.High { background: #d64545; }
-    .badge.Medium { background: #e8912d; }
-    .badge.Low { background: #2e9e5b; }
+    .badge.High, .badge.Scam { background: #d64545; }
+    .badge.Medium, .badge.More { background: #e8912d; }
+    .badge.Low, .badge.Safe { background: #2e9e5b; }
 
     /* Detail */
     .sectionTitle {
@@ -172,6 +167,29 @@
     li { padding: 6px 0 6px 28px; position: relative; line-height: 1.4; }
     #detailClaims li::before { content: "\26A0"; position: absolute; left: 0; color: #d64545; }
     #detailChecklist li::before { content: "\2610"; position: absolute; left: 2px; color: #1d4e89; }
+
+    /* Decision buttons */
+    .decisionButtons {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+    .decide {
+      flex: 1;
+      min-width: 160px;
+      font-size: 15px;
+      font-weight: bold;
+      color: white;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .decide.Safe { background: #2e9e5b; }
+    .decide.Scam { background: #d64545; }
+    .decide.More { background: #e8912d; }
+    .decide:hover { opacity: 0.85; }
   </style>
 </head>
 <body>
@@ -218,7 +236,22 @@
 
       <div class="humanBox">
         <span class="chip human">HUMAN DECISION</span>
-        <p class="muted" style="margin:0;">Not decided yet.</p>
+
+        <div id="decisionPending">
+          <p class="muted" style="margin-top:0;">Not decided yet. Read the AI draft above, then choose:</p>
+          <textarea id="noteInput" rows="3" placeholder="Add a short note (optional)..."></textarea>
+          <div class="decisionButtons">
+            <button class="decide Safe" data-decision="Safe">&#10004; Looks legitimate</button>
+            <button class="decide Scam" data-decision="Scam">&#10006; Likely a scam</button>
+            <button class="decide More" data-decision="More">? Needs more information</button>
+          </div>
+        </div>
+
+        <div id="decisionDone" style="display:none;">
+          <p>Final decision: <span id="decisionBadge" class="badge"></span></p>
+          <p id="decisionNote" class="muted"></p>
+          <button id="changeButton" class="secondary">Change decision</button>
+        </div>
       </div>
     </div>
 
@@ -234,6 +267,20 @@
     var queueCount = document.getElementById("queueCount");
     var detailArea = document.getElementById("detailArea");
     var backButton = document.getElementById("backButton");
+    var decisionPending = document.getElementById("decisionPending");
+    var decisionDone = document.getElementById("decisionDone");
+    var decisionBadge = document.getElementById("decisionBadge");
+    var decisionNote = document.getElementById("decisionNote");
+    var noteInput = document.getElementById("noteInput");
+    var changeButton = document.getElementById("changeButton");
+
+    var labels = {
+      Safe: "Looks legitimate",
+      Scam: "Likely a scam",
+      More: "Needs more information"
+    };
+
+    var currentCase = null;
 
     // FAKE cases (we replace this later with the real list from the backend)
     var cases = [
@@ -249,7 +296,8 @@
           "Search for the company name and read reviews",
           "Check that the company website really exists",
           "Never pay money to get a job"
-        ]
+        ],
+        decision: null, note: ""
       },
       {
         id: 2, risk: "Medium", language: "English", status: "Pending", time: "35 minutes ago",
@@ -262,7 +310,8 @@
           "Ask for the full company name and address",
           "Check the agency on the official government list",
           "Do not send documents until the company is verified"
-        ]
+        ],
+        decision: null, note: ""
       },
       {
         id: 3, risk: "Low", language: "Arabic", status: "Pending", time: "2 hours ago",
@@ -273,7 +322,8 @@
         checklist: [
           "Confirm the careers page is on the hotel's real website",
           "Ask for a written contract before travelling"
-        ]
+        ],
+        decision: null, note: ""
       }
     ];
 
@@ -287,7 +337,22 @@
       }
     }
 
+    function renderDecision(c) {
+      if (c.decision) {
+        decisionPending.style.display = "none";
+        decisionDone.style.display = "block";
+        decisionBadge.className = "badge " + c.decision;
+        decisionBadge.textContent = labels[c.decision];
+        decisionNote.textContent = c.note ? "Reviewer note: " + c.note : "No note added.";
+      } else {
+        decisionPending.style.display = "block";
+        decisionDone.style.display = "none";
+        noteInput.value = "";
+      }
+    }
+
     function openCase(c) {
+      currentCase = c;
       document.getElementById("detailTitle").textContent = "Case #" + c.id;
       document.getElementById("detailInfo").textContent =
         "Language: " + c.language + "  \u2022  Status: " + c.status + "  \u2022  " + c.time;
@@ -299,6 +364,7 @@
 
       fillList("detailClaims", c.claims);
       fillList("detailChecklist", c.checklist);
+      renderDecision(c);
 
       reviewerArea.style.display = "none";
       detailArea.style.display = "block";
@@ -307,7 +373,12 @@
 
     function showQueue() {
       queueList.innerHTML = "";
-      queueCount.textContent = cases.length + " case(s) in the queue. Click a case to open it.";
+
+      var pending = 0;
+      for (var p = 0; p < cases.length; p++) {
+        if (!cases[p].decision) { pending++; }
+      }
+      queueCount.textContent = pending + " of " + cases.length + " case(s) still waiting. Click a case to open it.";
 
       for (var i = 0; i < cases.length; i++) {
         (function (c) {
@@ -322,7 +393,8 @@
 
           var info = document.createElement("div");
           info.className = "caseInfo";
-          info.textContent = c.language + "  \u2022  " + c.status + "  \u2022  " + c.time;
+          var statusText = c.decision ? "Reviewed: " + labels[c.decision] : c.status;
+          info.textContent = c.language + "  \u2022  " + statusText + "  \u2022  " + c.time;
 
           left.appendChild(title);
           left.appendChild(info);
@@ -343,7 +415,26 @@
       }
     }
 
+    // Decision buttons
+    var decideButtons = document.querySelectorAll(".decide");
+    for (var b = 0; b < decideButtons.length; b++) {
+      decideButtons[b].addEventListener("click", function () {
+        currentCase.decision = this.getAttribute("data-decision");
+        currentCase.note = noteInput.value.trim();
+        currentCase.status = "Reviewed";
+        renderDecision(currentCase);
+      });
+    }
+
+    changeButton.addEventListener("click", function () {
+      currentCase.decision = null;
+      currentCase.note = "";
+      currentCase.status = "Pending";
+      renderDecision(currentCase);
+    });
+
     backButton.addEventListener("click", function () {
+      showQueue();
       detailArea.style.display = "none";
       reviewerArea.style.display = "block";
     });
