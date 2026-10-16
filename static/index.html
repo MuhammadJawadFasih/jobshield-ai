@@ -5,105 +5,244 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>JobShield AI</title>
   <style>
+    * { box-sizing: border-box; }
+
     body {
-      font-family: Arial, sans-serif;
-      background: #f4f6f8;
       margin: 0;
-      padding: 30px 15px;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: #eef2f7;
+      color: #1f2a37;
     }
 
-    .container {
-      max-width: 700px;
-      margin: 0 auto;
-      background: white;
-      padding: 30px;
-      border-radius: 10px;
-      text-align: center;
+    .topbar {
+      background: linear-gradient(135deg, #0f2a4a, #1d4e89);
+      color: white;
+      padding: 18px 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     }
+    .topbar-inner {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .brand { font-size: 24px; font-weight: bold; }
+    .tagline { font-size: 14px; opacity: 0.8; margin-top: 3px; }
+
+    .page {
+      max-width: 800px;
+      margin: 25px auto;
+      padding: 0 15px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 14px;
+      padding: 28px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+      margin-bottom: 20px;
+    }
+
+    h2 { margin-top: 0; }
+    .muted { color: #6b7a8c; font-size: 14px; }
 
     textarea {
       width: 100%;
-      box-sizing: border-box;
-      padding: 10px;
       font-size: 16px;
+      font-family: inherit;
+      padding: 14px;
+      border: 1px solid #c5d0de;
+      border-radius: 10px;
+      resize: vertical;
+    }
+    textarea:focus {
+      outline: none;
+      border-color: #1d4e89;
+      box-shadow: 0 0 0 3px rgba(29, 78, 137, 0.2);
     }
 
     .row {
       display: flex;
-      justify-content: center;
-      gap: 40px;
-      margin-top: 25px;
+      gap: 20px;
+      margin-top: 20px;
       flex-wrap: wrap;
     }
-
     .column {
       flex: 1;
-      min-width: 220px;
+      min-width: 230px;
+      background: #f4f6f9;
+      border: 1px solid #dde4ee;
+      border-radius: 12px;
+      padding: 16px;
     }
-
+    .label {
+      font-size: 13px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #6b7a8c;
+      margin: 0 0 10px;
+    }
     select {
+      width: 100%;
       font-size: 16px;
-      padding: 5px;
+      padding: 10px;
+      border: 1px solid #c5d0de;
+      border-radius: 8px;
+      background: white;
+    }
+    select:focus {
+      outline: none;
+      border-color: #1d4e89;
+      box-shadow: 0 0 0 3px rgba(29, 78, 137, 0.2);
+    }
+    input[type="file"] {
+      width: 100%;
+      font-size: 14px;
+    }
+    #fileName, #languageLabel {
+      margin: 10px 0 0;
+      font-size: 14px;
+      color: #1d4e89;
+      font-weight: bold;
+      min-height: 18px;
     }
 
-    #checkButton {
-      margin-top: 30px;
-      padding: 12px 30px;
+    .primary {
+      display: block;
+      width: 100%;
+      margin-top: 24px;
       font-size: 18px;
+      font-weight: bold;
+      padding: 14px;
+      color: white;
+      background: #1d4e89;
+      border: none;
+      border-radius: 10px;
       cursor: pointer;
     }
+    .primary:hover { background: #163c6b; }
+    .primary:disabled { background: #8fa6c2; cursor: not-allowed; }
 
-    #resultBox {
-      margin-top: 30px;
-      text-align: left;
-      border-top: 1px solid #ccc;
-      padding-top: 10px;
+    #statusMessage {
+      text-align: center;
+      font-weight: bold;
+      color: #1d4e89;
+      min-height: 22px;
+      margin: 16px 0 0;
     }
+    #statusMessage.error { color: #d64545; }
+
+    /* Result */
+    .sectionTitle {
+      font-size: 13px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #6b7a8c;
+      margin: 0 0 8px;
+    }
+    .aiBox {
+      background: #fffaf0;
+      border: 2px solid #f0d98a;
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-top: 10px;
+    }
+    .humanBox {
+      background: #f1f5fb;
+      border: 2px solid #b8cbe6;
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-top: 18px;
+    }
+    .chip {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      color: white;
+      margin-bottom: 8px;
+    }
+    .chip.ai { background: #b8890b; }
+    .chip.human { background: #1d4e89; }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 14px;
+      border-radius: 20px;
+      color: white;
+      font-size: 13px;
+      font-weight: bold;
+    }
+    .badge.High { background: #d64545; }
+    .badge.Medium { background: #e8912d; }
+    .badge.Low { background: #2e9e5b; }
+
+    ul { list-style: none; padding-left: 0; margin: 6px 0 14px; }
+    li { padding: 6px 0 6px 28px; position: relative; line-height: 1.4; }
+    #claimsList li::before { content: "\26A0"; position: absolute; left: 0; color: #d64545; }
+    #checklist li::before { content: "\2610"; position: absolute; left: 2px; color: #1d4e89; }
   </style>
 </head>
 <body>
 
-  <div class="container">
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">&#128737; JobShield AI</div>
+      <div class="tagline">Check an overseas job offer before you trust it</div>
+    </div>
+  </div>
 
-    <h1>JobShield AI</h1>
-    <p>Paste a job offer below, or upload a PDF or photo of it.</p>
+  <div class="page">
 
-    <textarea id="offerText" rows="10"
-      placeholder="Paste the job offer here..."></textarea>
+    <div class="card">
+      <h2>Check a job offer</h2>
+      <p class="muted">Paste the job offer below, or upload a PDF or photo of it.</p>
 
-    <div class="row">
-      <div class="column">
-        <p><b>Choose a file (PDF or photo)</b></p>
-        <input type="file" id="offerFile" accept=".pdf,image/*">
-        <p id="fileName"></p>
+      <textarea id="offerText" rows="9"
+        placeholder="Paste the job offer here..."></textarea>
+
+      <div class="row">
+        <div class="column">
+          <p class="label">Choose a file (PDF or photo)</p>
+          <input type="file" id="offerFile" accept=".pdf,image/*">
+          <p id="fileName"></p>
+        </div>
+
+        <div class="column">
+          <p class="label">Answer language</p>
+          <select id="language">
+            <option value="English">English</option>
+            <option value="Urdu">اردو (Urdu)</option>
+            <option value="Arabic">العربية (Arabic)</option>
+            <option value="Hindi">हिन्दी (Hindi)</option>
+            <option value="Bengali">বাংলা (Bengali)</option>
+          </select>
+          <p id="languageLabel">Answer language: English</p>
+        </div>
       </div>
 
-      <div class="column">
-        <p><b>Choose the answer language</b></p>
-        <select id="language">
-          <option value="English">English</option>
-          <option value="Urdu">اردو (Urdu)</option>
-          <option value="Arabic">العربية (Arabic)</option>
-          <option value="Hindi">हिन्दी (Hindi)</option>
-          <option value="Bengali">বাংলা (Bengali)</option>
-        </select>
-        <p id="languageLabel">Answer language: English</p>
-      </div>
+      <button id="checkButton" class="primary">Check this offer</button>
+      <p id="statusMessage"></p>
     </div>
 
-    <button id="checkButton">Check this offer</button>
-
-    <p id="statusMessage"></p>
-
-    <div id="resultBox" style="display:none;">
+    <div id="resultBox" class="card" style="display:none;">
       <h2>Result</h2>
-      <p><b>AI draft</b> (not final, a human will review it)</p>
-      <p>Risk level: <b id="riskLevel"></b></p>
-      <p>Suspicious claims found:</p>
-      <ul id="claimsList"></ul>
-      <p>Checklist to verify this offer:</p>
-      <ul id="checklist"></ul>
-      <p><b>Human decision:</b> Waiting for a reviewer...</p>
+
+      <div class="aiBox">
+        <span class="chip ai">AI DRAFT &middot; NOT FINAL</span>
+        <p>Risk level: <span id="riskLevel" class="badge"></span></p>
+        <b>Suspicious claims found</b>
+        <ul id="claimsList"></ul>
+        <b>Checklist to verify this offer</b>
+        <ul id="checklist"></ul>
+      </div>
+
+      <div class="humanBox">
+        <span class="chip human">HUMAN DECISION</span>
+        <p class="muted" style="margin:0;">Waiting for a reviewer...</p>
+      </div>
     </div>
 
   </div>
@@ -147,17 +286,21 @@
       var hasFile = fileInput.files.length > 0;
 
       if (!hasText && !hasFile) {
+        statusMessage.className = "error";
         statusMessage.textContent = "Please paste a job offer or choose a file first.";
         resultBox.style.display = "none";
         return;
       }
 
+      // Waiting state
+      statusMessage.className = "";
       statusMessage.textContent = "Checking your offer... please wait.";
       resultBox.style.display = "none";
       checkButton.disabled = true;
 
       // FAKE answer after 2 seconds (we replace this later with the real one)
       setTimeout(function () {
+        riskLevel.className = "badge High";
         riskLevel.textContent = "High";
         addItems(claimsList, [
           "Asks you to pay a fee before the job starts",
@@ -173,6 +316,7 @@
         statusMessage.textContent = "";
         resultBox.style.display = "block";
         checkButton.disabled = false;
+        resultBox.scrollIntoView({ behavior: "smooth" });
       }, 2000);
     });
   </script>
